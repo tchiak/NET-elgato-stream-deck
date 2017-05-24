@@ -1,45 +1,56 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Configuration;
 using System.Threading;
-using System.Xml.Schema;
 using HidLibrary;
 
 namespace StreamDeckLib
 {
-    public class StreamDeckDevice
+    public class StreamDeckDevice : IDisposable
     {
-        private static readonly string _manufacturer = ConfigurationManager.AppSettings["manufacturerId"];
-        private static readonly string _deviceName = ConfigurationManager.AppSettings["deviceId"];
+        private static readonly string _manufacturer = "Elgato Systems";
+        private static readonly string _deviceName = "Stream Deck";
 
-        private readonly HidDevice StreamHidDevice;
-        private bool IsListening = false;
+        private readonly HidDevice _streamHidDevice;
+        private bool _isListening = false;
+
+        private Thread dataReceivedThread;
 
         private StreamDeckDevice()
         {
             var device = StreamDeckDevice.SearchForActiveStreamDeck();
             if (device != null)
             {
-                this.StreamHidDevice = (HidDevice)device;
+                this._streamHidDevice = (HidDevice)device;
             }
         }
 
-        public void StartListening()
+        public bool StartListening()
         {
-            Task.Factory.StartNew(() =>
+            if (DataReceived == null)
             {
-                do
+                return false;
+            }
+            this._isListening = true;
+
+            dataReceivedThread= new Thread(() =>
+            {
+                
+                while(this._isListening)
                 {
-                    var deviceData = this.StreamHidDevice.Read(10);
-                    if (deviceData.Status == HidDeviceData.ReadStatus.Success)
+                    var deviceData = this._streamHidDevice.Read();
+                    if (this._isListening && deviceData.Status == HidDeviceData.ReadStatus.Success)
                     {
                         OnDataReceived(new DataReceivedEventArgs {Data = deviceData.Data});
                     }
-                } while (IsListening);
+                }
+                
             });
+            dataReceivedThread.Start();
+            return true;
+        }
+
+        public void StopListening()
+        {
+            this._isListening = false;
         }
 
         public event EventHandler DataReceived;
@@ -61,12 +72,12 @@ namespace StreamDeckLib
                 byte[] manufacturerBytes;
                 if (device.ReadManufacturer(out manufacturerBytes))
                 {
-                    manufacturer = manufacturerBytes.ToUTF8String();
+                    manufacturer = manufacturerBytes.ToUTF16String().Trim();
                 }
                 byte[] productBytes;
                 if (device.ReadProduct(out productBytes))
                 {
-                    product = productBytes.ToUTF8String();
+                    product = productBytes.ToUTF16String().Trim();
                 }
 
                 if (manufacturer != null && manufacturer.Equals(StreamDeckDevice._manufacturer)
@@ -85,6 +96,16 @@ namespace StreamDeckLib
             return new StreamDeckDevice();
         }
 
+        public void Dispose()
+        {
+            this._isListening = false;
+            if (this.dataReceivedThread.IsAlive)
+            {
+                this.dataReceivedThread.Abort();
+            }
+            if(this._streamHidDevice.IsOpen)
+                this._streamHidDevice.CloseDevice();
+        }
     }
 
 
