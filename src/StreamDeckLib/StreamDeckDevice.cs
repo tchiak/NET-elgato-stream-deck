@@ -4,34 +4,47 @@ using HidLibrary;
 
 namespace StreamDeckLib
 {
+    /// <summary>
+    /// A control wrapper that provides abstracted functionalities for interacting
+    /// with a single active Stream Deck Hardware.
+    /// </summary>
     public class StreamDeckDevice : IDisposable
     {
-        private static readonly string _manufacturer = "Elgato Systems";
-        private static readonly string _deviceName = "Stream Deck";
+        private static string _manufacturer = "Elgato Systems";
+        private static string _deviceName = "Stream Deck";
 
         private readonly HidDevice _streamHidDevice;
-        private bool _isListening = false;
+        private bool _isListening;
 
-        private Thread dataReceivedThread;
+        private Thread _dataReceivedThread;
 
-        private StreamDeckDevice()
+        /// <summary>
+        /// Creates a new StreamDeckDevice instance for interacting with an
+        /// active Stream Deck
+        /// </summary>
+        /// <param name="device">device to control</param>
+        private StreamDeckDevice(IHidDevice device)
         {
-            var device = StreamDeckDevice.SearchForActiveStreamDeck();
             if (device != null)
             {
                 this._streamHidDevice = (HidDevice)device;
             }
         }
 
+        /// <summary>
+        /// Starts listening for event data from the stream deck.
+        /// This will raise the OnDataReceivedHandler event when data is returned.
+        /// </summary>
+        /// <returns>true if listening started successfully, false if no handlers are registered.</returns>
         public bool StartListening()
         {
-            if (DataReceived == null)
+            if (OnDataReceived == null)
             {
                 return false;
             }
             this._isListening = true;
 
-            dataReceivedThread= new Thread(() =>
+            _dataReceivedThread= new Thread(() =>
             {
                 
                 while(this._isListening)
@@ -39,31 +52,44 @@ namespace StreamDeckLib
                     var deviceData = this._streamHidDevice.Read();
                     if (this._isListening && deviceData.Status == HidDeviceData.ReadStatus.Success)
                     {
-                        OnDataReceived(new DataReceivedEventArgs {Data = deviceData.Data});
+                        OnDataReceivedHandler(new DataReceivedEventArgs {Data = deviceData.Data});
                     }
                 }
                 
             });
-            dataReceivedThread.Start();
+            _dataReceivedThread.Start();
             return true;
         }
 
+        /// <summary>
+        /// Stops listening for data from the stream deck
+        /// </summary>
         public void StopListening()
         {
             this._isListening = false;
         }
 
-        public event EventHandler DataReceived;
+        /// <summary>
+        /// Events related to data received
+        /// </summary>
+        public event EventHandler OnDataReceived;
 
-        protected virtual void OnDataReceived(DataReceivedEventArgs e)
+        /// <summary>
+        /// Handles invoking the OnDataReceived event
+        /// </summary>
+        /// <param name="e"></param>
+        protected virtual void OnDataReceivedHandler(DataReceivedEventArgs e)
         {
-            var handler = DataReceived;
+            var handler = OnDataReceived;
             handler?.Invoke(this, e);
         }
-
+        
+        /// <summary>
+        /// Searches for an active connected Stream Deck
+        /// </summary>
+        /// <returns>The device if found, null otherwise</returns>
         private static IHidDevice SearchForActiveStreamDeck()
         {
-
             string manufacturer = null;
             string product = null;
 
@@ -91,18 +117,24 @@ namespace StreamDeckLib
 
         }
 
+        /// <summary>
+        /// Returns an instance of StreamDeckDevice 
+        /// </summary>
+        /// <returns>null if no active Stream Deck Device is detected, else StreamDeckDevice Instance</returns>
         public static StreamDeckDevice GetStreamDevice()
         {
-            return new StreamDeckDevice();
+            var device = StreamDeckDevice.SearchForActiveStreamDeck();
+            return device == null ? null : new StreamDeckDevice(device);
         }
 
+        /// <summary>
+        /// Performs clean up of the device
+        /// </summary>
         public void Dispose()
         {
             this._isListening = false;
-            if (this.dataReceivedThread.IsAlive)
-            {
-                this.dataReceivedThread.Abort();
-            }
+            if(this._dataReceivedThread.ThreadState != ThreadState.Stopped)
+                this._dataReceivedThread.Abort();
             if(this._streamHidDevice.IsOpen)
                 this._streamHidDevice.CloseDevice();
         }

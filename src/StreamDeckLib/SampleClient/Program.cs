@@ -14,7 +14,7 @@ namespace SampleClient
             Console.WriteLine("Starting Program");
             Console.WriteLine("Press 'q' to stop listening for events");
             var device = StreamDeckDevice.GetStreamDevice();
-            device.DataReceived += Device_DataReceived;
+            device.OnDataReceived += DeviceOnDataReceived;
             device.StartListening();
             string option = null;
             do
@@ -27,7 +27,7 @@ namespace SampleClient
             Console.ReadLine();
         }
 
-        private static void Device_DataReceived(object sender, EventArgs e)
+        private static void DeviceOnDataReceived(object sender, EventArgs e)
         {
             var eventArgs = (DataReceivedEventArgs) e;
             Console.WriteLine(BitConverter.ToString(eventArgs.Data));
