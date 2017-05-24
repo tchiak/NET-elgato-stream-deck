@@ -3,3 +3,4 @@ src/StreamDeckLib/obj/Release/
 src/StreamDeckLib/packages/
 src/StreamDeckLibTests/obj/Debug/
 src/StreamDeckLibTests/obj/Release/
+src/StreamDeckLib/SampleClient/obj/Debug/
