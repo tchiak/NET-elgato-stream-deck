@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using HidLibrary;
 
@@ -17,6 +18,8 @@ namespace StreamDeckLib
         private bool _isListening;
 
         private Thread _dataReceivedThread;
+
+        private byte[] previousKeyEvent;
 
         /// <summary>
         /// Creates a new StreamDeckDevice instance for interacting with an
@@ -40,7 +43,7 @@ namespace StreamDeckLib
         {
             if (OnDataReceived == null)
             {
-                return false;
+                OnDataReceived += KeyPressProccessor;
             }
             this._isListening = true;
 
@@ -67,12 +70,22 @@ namespace StreamDeckLib
         public void StopListening()
         {
             this._isListening = false;
+            OnDataReceived -= KeyPressProccessor;
+            return;
         }
 
         /// <summary>
         /// Events related to data received
         /// </summary>
         public event EventHandler OnDataReceived;
+
+        public event EventHandler OnKeyDown;
+
+        protected virtual void OnKeyDownHandler(KeyEventArgs e)
+        {
+            var handler = OnKeyDown;
+            handler?.Invoke(this, e);
+        }
 
         /// <summary>
         /// Handles invoking the OnDataReceived event
@@ -138,12 +151,56 @@ namespace StreamDeckLib
             if(this._streamHidDevice.IsOpen)
                 this._streamHidDevice.CloseDevice();
         }
+
+        public void KeyPressProccessor(object sender, EventArgs e)
+        {
+            var keyEventData = ((DataReceivedEventArgs)e).Data;
+            var keysDownList = new List<int>(15);
+            var count = 1;
+            for (var i = 5; i > 0; i--)
+            {
+                if (keyEventData[i] == 1)
+                {
+                    keysDownList.Add(count);
+                }
+                count++;
+            }
+            for (var i = 10; i >= 6; i--)
+            {
+                if (keyEventData[i] == 1)
+                {
+                    keysDownList.Add(count);
+                }
+                count++;
+            }
+            for (var i = 15; i > 10; i--)
+            {
+
+                if (keyEventData[i] == 1)
+                {
+                    keysDownList.Add(count);
+                }
+                count++;
+            }
+
+            var args = new KeyEventArgs
+            {
+                Keys = keysDownList
+            };
+
+            OnKeyDownHandler(args);
+        }
     }
 
 
     public class DataReceivedEventArgs : EventArgs
     {
         public byte[] Data { get; set; }
+    }
+
+    public class KeyEventArgs : EventArgs
+    {
+        public List<int> Keys { get; set; }
     }
 
 
