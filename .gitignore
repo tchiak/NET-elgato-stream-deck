@@ -1,10 +1,2 @@
 src/StreamDeckLib/obj/Debug/
 src/StreamDeckLib/obj/Release/
-src/StreamDeckLib/packages/
-src/StreamDeckLibTests/obj/Debug/
-src/StreamDeckLibTests/obj/Release/
-src/StreamDeckLib/SampleClient/obj/Debug/
-
-src/StreamDeckLib/SampleClient/bin/Debug/
-
-src/StreamDeckLib/bin/Debug/
