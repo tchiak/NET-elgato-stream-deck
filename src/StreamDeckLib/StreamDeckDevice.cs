@@ -16,10 +16,9 @@ namespace StreamDeckLib
 
         private readonly HidDevice _streamHidDevice;
         private bool _isListening;
+        private bool _stopThread;
 
         private Thread _dataReceivedThread;
-
-        private byte[] previousKeyEvent;
 
         /// <summary>
         /// Creates a new StreamDeckDevice instance for interacting with an
@@ -30,8 +29,9 @@ namespace StreamDeckLib
         {
             if (device != null)
             {
-                this._streamHidDevice = (HidDevice)device;
+                this._streamHidDevice = (HidDevice) device;
             }
+
         }
 
         /// <summary>
@@ -50,13 +50,18 @@ namespace StreamDeckLib
             _dataReceivedThread= new Thread(() =>
             {
                 
-                while(this._isListening)
+                while(!this._stopThread)
                 {
+                    if (!this._isListening)
+                    {
+                        this._streamHidDevice.Read();
+                    }
                     var deviceData = this._streamHidDevice.Read();
                     if (this._isListening && deviceData.Status == HidDeviceData.ReadStatus.Success)
                     {
                         OnDataReceivedHandler(new DataReceivedEventArgs {Data = deviceData.Data});
                     }
+                    
                 }
                 
             });
@@ -71,7 +76,6 @@ namespace StreamDeckLib
         {
             this._isListening = false;
             OnDataReceived -= KeyPressProccessor;
-            return;
         }
 
         /// <summary>
@@ -146,13 +150,13 @@ namespace StreamDeckLib
         public void Dispose()
         {
             this._isListening = false;
-            if(this._dataReceivedThread.ThreadState != ThreadState.Stopped)
-                this._dataReceivedThread.Abort();
+            this._stopThread = true;
+
             if(this._streamHidDevice.IsOpen)
                 this._streamHidDevice.CloseDevice();
         }
 
-        public void KeyPressProccessor(object sender, EventArgs e)
+        private void KeyPressProccessor(object sender, EventArgs e)
         {
             var keyEventData = ((DataReceivedEventArgs)e).Data;
             var keysDownList = new List<int>(15);

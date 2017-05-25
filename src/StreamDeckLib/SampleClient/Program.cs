@@ -1,19 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Diagnostics.Eventing.Reader;
-using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using StreamDeckLib;
-using DataReceivedEventArgs = StreamDeckLib.DataReceivedEventArgs;
 
 namespace SampleClient
 {
-    class Program
+    internal class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
             Console.WriteLine("Starting Program");
             Console.WriteLine("Press 'q' to stop listening for events");
@@ -33,6 +25,7 @@ namespace SampleClient
             device.StopListening();
             Console.WriteLine("Press Enter To Continue");
             Console.ReadLine();
+            device.Dispose();
         }
 
         private static void DeviceOnDataReceived(object sender, EventArgs e)
