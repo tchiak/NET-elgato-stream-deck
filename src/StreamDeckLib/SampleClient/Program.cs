@@ -1,36 +1,40 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using StreamDeckLib;
 
 namespace SampleClient
 {
-    class Program
+    internal class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
             Console.WriteLine("Starting Program");
             Console.WriteLine("Press 'q' to stop listening for events");
             var device = StreamDeckDevice.GetStreamDevice();
-            device.OnDataReceived += DeviceOnDataReceived;
+            device.OnKeyDown += DeviceOnDataReceived;
             device.StartListening();
             string option = null;
             do
             {
                 option = Console.ReadLine();
+                if(option.Equals("s"))
+                    device.StopListening();
+                if (option.Equals("e"))
+                    device.StartListening();
             } while (!option.Equals("q"));
             Console.WriteLine("Stopping Listening");
             device.StopListening();
             Console.WriteLine("Press Enter To Continue");
             Console.ReadLine();
+            device.Dispose();
         }
 
         private static void DeviceOnDataReceived(object sender, EventArgs e)
         {
-            var eventArgs = (DataReceivedEventArgs) e;
-            Console.WriteLine(BitConverter.ToString(eventArgs.Data));
+            var keys = (KeyEventArgs) e;
+            foreach (var key in keys.Keys)
+            {
+                Console.WriteLine($"Key: {key} pressed ");
+            }
         }
     }
 }
