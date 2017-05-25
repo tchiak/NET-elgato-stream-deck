@@ -5,6 +5,12 @@ VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamDeckLib", "StreamDeckLib.csproj", "{CE2A860A-62CA-436C-A725-2FB133843E27}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamDeckLibTests", "..\StreamDeckLibTests\StreamDeckLibTests.csproj", "{1CAD9C08-644B-461F-85FA-D32EA85AA99A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Client", "Client", "{DEF24222-E91E-4C67-9001-9B7BE85E295B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleClient", "SampleClient\SampleClient.csproj", "{82426635-BD09-4C6D-8B90-9D1488D724D5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,8 +21,19 @@ Global
 		{CE2A860A-62CA-436C-A725-2FB133843E27}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CE2A860A-62CA-436C-A725-2FB133843E27}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CE2A860A-62CA-436C-A725-2FB133843E27}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1CAD9C08-644B-461F-85FA-D32EA85AA99A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1CAD9C08-644B-461F-85FA-D32EA85AA99A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1CAD9C08-644B-461F-85FA-D32EA85AA99A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1CAD9C08-644B-461F-85FA-D32EA85AA99A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{82426635-BD09-4C6D-8B90-9D1488D724D5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{82426635-BD09-4C6D-8B90-9D1488D724D5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{82426635-BD09-4C6D-8B90-9D1488D724D5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{82426635-BD09-4C6D-8B90-9D1488D724D5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{82426635-BD09-4C6D-8B90-9D1488D724D5} = {DEF24222-E91E-4C67-9001-9B7BE85E295B}
 	EndGlobalSection
 EndGlobal
