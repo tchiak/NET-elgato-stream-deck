@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using HidLibrary;
+using System.Diagnostics;
 
 namespace StreamDeckLib
 {
@@ -20,7 +20,8 @@ namespace StreamDeckLib
         private static string _deviceName = "Stream Deck";
 
         private static int _packetSize = 8218;
-
+        private static int _num_first_page_pixels = 2583;
+        private static int _num_second_page_pixels = 2601;
         private readonly HidDevice _streamHidDevice;
         private bool _isListening;
         private bool _stopThread;
@@ -172,7 +173,7 @@ namespace StreamDeckLib
             {
                 if (keyEventData[i] == 1)
                 {
-                    keysDownList.Add(count);
+                    keysDownList.Add(i);
                 }
                 count++;
             }
@@ -180,7 +181,7 @@ namespace StreamDeckLib
             {
                 if (keyEventData[i] == 1)
                 {
-                    keysDownList.Add(count);
+                    keysDownList.Add(i);
                 }
                 count++;
             }
@@ -189,7 +190,7 @@ namespace StreamDeckLib
 
                 if (keyEventData[i] == 1)
                 {
-                    keysDownList.Add(count);
+                    keysDownList.Add(i);
                 }
                 count++;
             }
@@ -202,11 +203,8 @@ namespace StreamDeckLib
             OnKeyDownHandler(args);
         }
 
-        private const int PagePacketSize = 8191;
-        private const int NumFirstPagePixels = 2583;
-        private const int NumSecondPagePixels = 2601;
+      
         private const int IconSize = 72;
-        private const int NumTotalPixels = NumFirstPagePixels + NumSecondPagePixels;
         private static readonly byte[] WriteHeader = new byte[]
         {
             0x02, 0x01, 0x00, 0x00, 0x00,
@@ -215,31 +213,42 @@ namespace StreamDeckLib
             0x00
         };
 
-        public bool WriteImage(string fileLocation, int key)
-        {
-            Bitmap bmp = new Bitmap(fileLocation);
-        //    Graphics gfx = Graphics.FromImage(bmp);
-            bmp.RotateFlip(RotateFlipType.Rotate180FlipNone);
-            byte[] page = bmp.ToByteArray(ImageFormat.Bmp);
-            return Write(ref page, key);
+        public async Task<bool> WriteImage(string fileLocation, int key) {
+            Stopwatch time = Stopwatch.StartNew();
+            Bitmap originalbmp = new Bitmap(fileLocation);
+
+            originalbmp.RotateFlip(RotateFlipType.Rotate180FlipNone);
+            byte[] page = originalbmp.ToByteArray(ImageFormat.Bmp);
+            time.Stop();
+            Console.WriteLine($"Loading BMP: {time.Elapsed.Milliseconds}");
+            return await Write(page, key);
         }
 
-        public bool Write(ref byte[] page, int key)
-        {
+        public async Task<bool> Write(byte[] page, int key) {
+            Stopwatch time = Stopwatch.StartNew();
             var page1 = new byte[_packetSize];
             Buffer.BlockCopy(WriteHeader, 0, page1, 0, WriteHeader.Length);
 
             var page2 = new byte[_packetSize];
             Buffer.BlockCopy(WriteHeader, 0, page2, 0, WriteHeader.Length);
+            
+            Buffer.BlockCopy(page, 0, page1, WriteHeader.Length, _num_first_page_pixels*3 + 162) ;
+            Buffer.BlockCopy(page, (_num_first_page_pixels*3)-162, page2, WriteHeader.Length, _num_second_page_pixels*3);//- _packetSize);
+            Console.WriteLine($"Create pages: {time.Elapsed.Milliseconds}");
+            time.Restart();
+            bool check1 = false;
+            bool check2 = false;
+            await Task.Run(() => {
+                 check1 = WritePage1(page1, key);
+                 check2 = WritePage2(page2, key);
+            });
+            Console.WriteLine($"Write to deck: {time.Elapsed.Milliseconds}");
 
-            Buffer.BlockCopy(page, 0, page1, WriteHeader.Length, _packetSize - WriteHeader.Length) ;
-            Buffer.BlockCopy(page, _packetSize +17, page2, WriteHeader.Length, page.Length -17- _packetSize);
-
-            var check1 = WritePage1(page1, key);
-
-            var check2 = WritePage2(page2, key);
+            Console.WriteLine($"Page 1: {check1}");
+            Console.WriteLine($"Page 2: {check2}");
             return check1 & check2;
         }
+
         public bool WriteRGB(int r, int g, int b, int key)
         {
             Bitmap bmp = new Bitmap(72, 72, PixelFormat.Format24bppRgb);
@@ -257,7 +266,7 @@ namespace StreamDeckLib
     
             byte[] page = bmp.ToByteArray(ImageFormat.Bmp);
 
-            Write(ref page, key);
+           // Write(ref page, key);
             
 
             return true;
@@ -267,7 +276,7 @@ namespace StreamDeckLib
         {
             Buffer.SetByte(page, 5, Convert.ToByte(key));
             Buffer.SetByte(page, 2, 0x01);
-            return _streamHidDevice.Write(page);
+            return _streamHidDevice.WriteAsync(page).Result;
 
         }
 
@@ -276,7 +285,7 @@ namespace StreamDeckLib
             Buffer.SetByte(page, 5, Convert.ToByte(key));
             Buffer.SetByte(page, 2, 0x02);
             Buffer.SetByte(page, 4, 0x01);
-            return _streamHidDevice.Write(page);
+            return _streamHidDevice.WriteAsync(page,1000).Result;
         }
     }
 
