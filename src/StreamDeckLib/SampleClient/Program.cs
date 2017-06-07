@@ -39,7 +39,8 @@ namespace SampleClient
 
         private static void LightShow(StreamDeckDevice device )
         {
-            _lightShow = true;
+            device.WriteImage(@"C:\Users\Aaron Schwan\Pictures\KeyCons\notepad.png", 6);
+            /*  _lightShow = true;
             Random rnd = new Random();
             while (true)
             {
@@ -52,7 +53,7 @@ namespace SampleClient
                     
                 }
                // Thread.Sleep();
-            }
+            }*/
         }
         private static void DeviceOnDataReceived(object sender, EventArgs e)
         {

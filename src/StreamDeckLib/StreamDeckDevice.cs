@@ -215,14 +215,34 @@ namespace StreamDeckLib
             0x00
         };
 
-        private async Task<bool> WriteImage(byte[] image)
+        public bool WriteImage(string fileLocation, int key)
         {
-            return false;
+            Bitmap bmp = new Bitmap(fileLocation);
+        //    Graphics gfx = Graphics.FromImage(bmp);
+            bmp.RotateFlip(RotateFlipType.Rotate180FlipNone);
+            byte[] page = bmp.ToByteArray(ImageFormat.Bmp);
+            return Write(ref page, key);
         }
 
+        public bool Write(ref byte[] page, int key)
+        {
+            var page1 = new byte[_packetSize];
+            Buffer.BlockCopy(WriteHeader, 0, page1, 0, WriteHeader.Length);
+
+            var page2 = new byte[_packetSize];
+            Buffer.BlockCopy(WriteHeader, 0, page2, 0, WriteHeader.Length);
+
+            Buffer.BlockCopy(page, 0, page1, WriteHeader.Length, _packetSize - WriteHeader.Length) ;
+            Buffer.BlockCopy(page, _packetSize +17, page2, WriteHeader.Length, page.Length -17- _packetSize);
+
+            var check1 = WritePage1(page1, key);
+
+            var check2 = WritePage2(page2, key);
+            return check1 & check2;
+        }
         public bool WriteRGB(int r, int g, int b, int key)
         {
-            Bitmap bmp = new Bitmap(72, 72, PixelFormat.Format32bppRgb);
+            Bitmap bmp = new Bitmap(72, 72, PixelFormat.Format24bppRgb);
             var color = Color.FromArgb(r,g,b);
 
             for (int i = 0; i < 72; i++)
@@ -237,18 +257,8 @@ namespace StreamDeckLib
     
             byte[] page = bmp.ToByteArray(ImageFormat.Bmp);
 
-            var page1 = new byte[_packetSize];
-            Buffer.BlockCopy(WriteHeader, 0, page1, 0, WriteHeader.Length);
-
-            var page2 = new byte[_packetSize];
-            Buffer.BlockCopy(WriteHeader, 0, page2, 0, WriteHeader.Length);
-
-            Buffer.BlockCopy(page, 0, page1, WriteHeader.Length, _packetSize - WriteHeader.Length);
-            Buffer.BlockCopy(page, _packetSize-WriteHeader.Length, page2, WriteHeader.Length, page.Length - _packetSize);
-
-            var check1 = WritePage1(page1, key);
-
-            var check2 = WritePage2(page2, key);
+            Write(ref page, key);
+            
 
             return true;
         }
