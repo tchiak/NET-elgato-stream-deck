@@ -1,6 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
+using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using HidLibrary;
 
 namespace StreamDeckLib
@@ -13,6 +18,8 @@ namespace StreamDeckLib
     {
         private static string _manufacturer = "Elgato Systems";
         private static string _deviceName = "Stream Deck";
+
+        private static int _packetSize = 8218;
 
         private readonly HidDevice _streamHidDevice;
         private bool _isListening;
@@ -194,6 +201,73 @@ namespace StreamDeckLib
 
             OnKeyDownHandler(args);
         }
+
+        private const int PagePacketSize = 8191;
+        private const int NumFirstPagePixels = 2583;
+        private const int NumSecondPagePixels = 2601;
+        private const int IconSize = 72;
+        private const int NumTotalPixels = NumFirstPagePixels + NumSecondPagePixels;
+        private static readonly byte[] WriteHeader = new byte[]
+        {
+            0x02, 0x01, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00
+        };
+
+        private async Task<bool> WriteImage(byte[] image)
+        {
+            return false;
+        }
+
+        public bool WriteRGB(int r, int g, int b, int key)
+        {
+            Bitmap bmp = new Bitmap(72, 72, PixelFormat.Format32bppRgb);
+            var color = Color.FromArgb(r,g,b);
+
+            for (int i = 0; i < 72; i++)
+            {
+                for (int j = 0; j < 72; j++)
+                {
+                    bmp.SetPixel(i, j, color );
+                }
+            }
+
+            bmp = bmp.Clone(new Rectangle(0, 0, 72, 72), PixelFormat.Format24bppRgb);
+    
+            byte[] page = bmp.ToByteArray(ImageFormat.Bmp);
+
+            var page1 = new byte[_packetSize];
+            Buffer.BlockCopy(WriteHeader, 0, page1, 0, WriteHeader.Length);
+
+            var page2 = new byte[_packetSize];
+            Buffer.BlockCopy(WriteHeader, 0, page2, 0, WriteHeader.Length);
+
+            Buffer.BlockCopy(page, 0, page1, WriteHeader.Length, _packetSize - WriteHeader.Length);
+            Buffer.BlockCopy(page, _packetSize-WriteHeader.Length, page2, WriteHeader.Length, page.Length - _packetSize);
+
+            var check1 = WritePage1(page1, key);
+
+            var check2 = WritePage2(page2, key);
+
+            return true;
+        }
+
+        private bool WritePage1(byte[] page, int key)
+        {
+            Buffer.SetByte(page, 5, Convert.ToByte(key));
+            Buffer.SetByte(page, 2, 0x01);
+            return _streamHidDevice.Write(page);
+
+        }
+
+        private bool WritePage2(byte[] page, int key)
+        {
+            Buffer.SetByte(page, 5, Convert.ToByte(key));
+            Buffer.SetByte(page, 2, 0x02);
+            Buffer.SetByte(page, 4, 0x01);
+            return _streamHidDevice.Write(page);
+        }
     }
 
 
@@ -205,6 +279,19 @@ namespace StreamDeckLib
     public class KeyEventArgs : EventArgs
     {
         public List<int> Keys { get; set; }
+    }
+
+
+    public static class ImageExtensions
+    {
+        public static byte[] ToByteArray(this Image image, ImageFormat format)
+        {
+            using (MemoryStream ms = new MemoryStream())
+            {
+                image.Save(ms, format);
+                return ms.ToArray();
+            }
+        }
     }
 
 

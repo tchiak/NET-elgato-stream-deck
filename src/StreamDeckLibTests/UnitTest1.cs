@@ -1,5 +1,6 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using StreamDeckLib;
 
 namespace StreamDeckLibTests
 {
@@ -9,6 +10,7 @@ namespace StreamDeckLibTests
         [TestMethod]
         public void TestMethod1()
         {
+
         }
     }
 }

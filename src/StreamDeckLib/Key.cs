@@ -12,7 +12,7 @@ namespace StreamDeckLib
         private int _b = 0;
         private byte[] _imageTop;
         private byte[] _imageBottom;
-      //  private const 
+        private int _keyPosition;
 
     }
 }
